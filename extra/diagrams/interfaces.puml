@@ -1,0 +1,44 @@
+@startuml interfaces
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+title Caesium — Interface & Abstraction Hierarchy
+
+interface Clock {
+    +start(tickRate: int, callback: Consumer<Long>): void
+    +stop(): void
+}
+
+interface Storage {
+    +fetchTasksForToday(): List<DbTask>
+    +detectMissedTasks(): List<DbTask>
+    +fetchAllTasks(): List<DbTask>
+    +fetchTaskByName(name: String): DbTask
+    +insertTask(task: CaesiumTask): DbTask
+    +markTaskCompleted(task: DbTask): DbTask
+    +getOrCreateSystem(): DbSystem
+}
+
+interface SystemBase {
+    +run(): void
+    +registerTask(task: CaesiumTask): void
+    +getCollectedTasks(): List<DbTask>
+    +markTaskCompleted(name: String): Optional<DbTask>
+    +getAllTasks(): List<DbTask>
+}
+
+abstract class CaesiumTask {
+    +{abstract} execute(): void
+    +run(): void
+}
+
+class AtomicClock
+class SqlStorage
+class CaesiumSystem
+class MyTask
+
+Clock <|.. AtomicClock : implements
+Storage <|.. SqlStorage : implements
+SystemBase <|.. CaesiumSystem : implements
+CaesiumTask <|-- MyTask : extends
+
+@enduml

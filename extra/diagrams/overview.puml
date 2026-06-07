@@ -1,0 +1,126 @@
+@startuml overview
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+title Caesium — Full Class Overview
+
+interface Clock {
+    +start(tickRate: int, callback: Consumer<Long>): void
+    +stop(): void
+}
+
+interface Storage {
+    +fetchTasksForToday(): List<DbTask>
+    +detectMissedTasks(): List<DbTask>
+    +fetchAllTasks(): List<DbTask>
+    +fetchTaskByName(name: String): DbTask
+    +insertTask(task: CaesiumTask): DbTask
+    +markTaskCompleted(task: DbTask): DbTask
+    +getOrCreateSystem(): DbSystem
+}
+
+interface SystemBase {
+    +run(): void
+    +registerTask(task: CaesiumTask): void
+    +getCollectedTasks(): List<DbTask>
+    +markTaskCompleted(name: String): Optional<DbTask>
+    +getAllTasks(): List<DbTask>
+}
+
+abstract class CaesiumTask {
+    -id: String
+    -triggerTime: OffsetDateTime
+    -isCompleted: boolean
+    -running: boolean
+    -completeCallback: Runnable
+    +createTaskName(): String
+    +{abstract} execute(): void
+    +run(): void
+}
+
+class AtomicClock {
+    -tickRate: int
+    -callback: Consumer<Long>
+    -mainThread: Thread
+    -lastTick: long
+    -lock: Object
+    -tick(): void
+    +start(tickRate: int, callback: Consumer<Long>): void
+    +stop(): void
+}
+
+class CaesiumSystem {
+    -currentDate: OffsetDateTime
+    -todayTasks: List<DbTask>
+    -started: boolean
+    -registeredTasks: Map<String, CaesiumTask>
+    -populateTodayTasks(): void
+    -step(timestamp: long): void
+    +run(): void
+    +registerTask(task: CaesiumTask): void
+    +getCollectedTasks(): List<DbTask>
+    +markTaskCompleted(name: String): Optional<DbTask>
+    +getAllTasks(): List<DbTask>
+}
+
+class SqlStorage {
+    +fetchTasksForToday(): List<DbTask>
+    +detectMissedTasks(): List<DbTask>
+    +fetchAllTasks(): List<DbTask>
+    +fetchTaskByName(name: String): DbTask
+    +insertTask(task: CaesiumTask): DbTask
+    +markTaskCompleted(task: DbTask): DbTask
+    +getOrCreateSystem(): DbSystem
+}
+
+class TaskFactory {
+    +{static} createTask(taskClass: Class<T>, id: String, scheduleTime: OffsetDateTime): T
+}
+
+class MyTask {
+    +execute(): void
+}
+
+class MainController {
+    +getAllTasks(): List<DbTask>
+    +getCollectedTasks(): List<DbTask>
+    +markTaskCompleted(id: String): ResponseEntity<DbTask>
+}
+
+class DbTask {
+    -id: long
+    -name: String
+    -scheduleTime: OffsetDateTime
+    -ranTime: OffsetDateTime
+    -completed: boolean
+}
+
+class DbSystem {
+    -id: UUID
+    -createdAt: OffsetDateTime
+    -active: boolean
+}
+
+interface TaskRepository {
+    +getTimeRangeTasks(start: OffsetDateTime, end: OffsetDateTime): List<DbTask>
+    +findByName(name: String): DbTask
+}
+
+interface SystemConfigRepository {
+    +getCurrentActiveSystem(): Optional<DbSystem>
+}
+
+Clock <|.. AtomicClock
+Storage <|.. SqlStorage
+SystemBase <|.. CaesiumSystem
+CaesiumTask <|-- MyTask
+
+CaesiumSystem o--> Clock
+CaesiumSystem o--> Storage
+
+SqlStorage o--> TaskRepository
+SqlStorage o--> SystemConfigRepository
+
+MainController --> CaesiumSystem
+TaskFactory ..> CaesiumTask : <<creates>>
+
+@enduml

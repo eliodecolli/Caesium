@@ -1,0 +1,66 @@
+@startuml persistence
+skinparam classAttributeIconSize 0
+title Caesium — Persistence Layer
+
+interface Storage {
+    +fetchTasksForToday(): List<DbTask>
+    +detectMissedTasks(): List<DbTask>
+    +fetchAllTasks(): List<DbTask>
+    +fetchTaskByName(name: String): DbTask
+    +insertTask(task: CaesiumTask): DbTask
+    +markTaskCompleted(task: DbTask): DbTask
+    +getOrCreateSystem(): DbSystem
+}
+
+class SqlStorage {
+    +fetchTasksForToday(): List<DbTask>
+    +detectMissedTasks(): List<DbTask>
+    +fetchAllTasks(): List<DbTask>
+    +fetchTaskByName(name: String): DbTask
+    +insertTask(task: CaesiumTask): DbTask
+    +markTaskCompleted(task: DbTask): DbTask
+    +getOrCreateSystem(): DbSystem
+}
+
+interface TaskRepository <<JpaRepository>> {
+    +getTimeRangeTasks(start: OffsetDateTime, end: OffsetDateTime): List<DbTask>
+    +findByName(name: String): DbTask
+}
+
+interface SystemConfigRepository <<JpaRepository>> {
+    +getCurrentActiveSystem(): Optional<DbSystem>
+}
+
+class DbTask <<Entity>> {
+    -id: long
+    -name: String
+    -scheduleTime: OffsetDateTime
+    -ranTime: OffsetDateTime
+    -completed: boolean
+}
+
+class DbSystem <<Entity>> {
+    -id: UUID
+    -createdAt: OffsetDateTime
+    -active: boolean
+}
+
+note bottom of DbTask
+  Table: caesium_tasks
+  name format: {taskId}-{epochSeconds}
+end note
+
+note bottom of DbSystem
+  Table: caesium_system_config
+  One active record per running system.
+end note
+
+Storage <|.. SqlStorage
+
+SqlStorage o--> TaskRepository
+SqlStorage o--> SystemConfigRepository
+
+TaskRepository ..> DbTask : manages
+SystemConfigRepository ..> DbSystem : manages
+
+@enduml
